@@ -1,104 +1,93 @@
-import "./App.css";
-import { Component } from "react";
+import useLocalStorage from "../src/hooks/useLocalStorage";
+import { useState } from "react";
 import ContactForm from "./components/ContactForm/ContactForm";
 import ContactList from "./components/ContactList/ContactList";
 import Filter from "./components/Filter/Filter";
 import { v4 as uuidv4 } from "uuid";
+import "./App.css";
 
-class App extends Component {
-  state = {
-    contacts: [
-      { id: uuidv4(), name: "Rosie Simpson", phoneNumber: "459-12-56" },
-      { id: uuidv4(), name: "Hermione Kline", phoneNumber: "443-89-12" },
-      { id: uuidv4(), name: "Eden Clements", phoneNumber: "645-17-79" },
-      { id: uuidv4(), name: "Annie Copeland", phoneNumber: "227-91-26" },
-    ],
-    filter: "",
+const baseContacts = [
+  { id: uuidv4(), name: "Rosie Simpson", phoneNumber: "459-12-56" },
+  { id: uuidv4(), name: "Hermione Kline", phoneNumber: "443-89-12" },
+  { id: uuidv4(), name: "Eden Clements", phoneNumber: "645-17-79" },
+  { id: uuidv4(), name: "Annie Copeland", phoneNumber: "227-91-26" },
+];
+
+export default function App() {
+  const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  const [filter, setFilter] = useState("");
+
+  const [contacts, setContacts] = useLocalStorage("contacts", [
+    ...baseContacts,
+  ]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    switch (name) {
+      case "name":
+        setName(value);
+        break;
+
+      case "number":
+        setPhoneNumber(value);
+        break;
+
+      default:
+        return;
+    }
   };
 
-  componentDidMount() {
-    const contacts = localStorage.getItem("contacts");
-    console.log("DidMount contacts", contacts);
-    const parsedContacts = JSON.parse(contacts);
-    console.log("DidMount parsedContacts", parsedContacts);
-
-    if (parsedContacts && parsedContacts.length > 0) {
-      this.setState({ contacts: [...parsedContacts] });
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const nextContacts = this.state.contacts;
-    // const prevContacts = prevState.contacts;
-
-    // if (nextContacts !== prevContacts) {
-    localStorage.setItem("contacts", JSON.stringify(nextContacts));
-    // }
-  }
-
-  addContact = () => {
+  const addContact = (e) => {
     if (
-      this.state.contacts.find((contact) => {
-        return contact.name === this.state.name;
+      contacts.find((contact) => {
+        return contact.name === name;
       })
     ) {
-      alert(`${this.state.name} is already in contacts!`);
+      alert(`${name} is already in contacts!`);
     } else {
       const newContact = {
         id: uuidv4(),
-        name: this.state.name,
-        phoneNumber: this.state.phoneNumber,
+        name,
+        phoneNumber,
       };
-      this.setState(({ contacts }) => ({
-        contacts: [newContact, ...contacts],
-      }));
+      setContacts([newContact, ...contacts]);
     }
   };
 
-  delContact = (e) => {
-    const elementToDel = this.state.contacts.find(
-      (item) => item.id === e.target.id
+  const getFilteredElems = () => {
+    const normalizedFilter = filter.toLowerCase();
+    return contacts.filter((elem) =>
+      elem.name.toLowerCase().includes(normalizedFilter)
     );
-    const index = this.state.contacts.indexOf(elementToDel);
-    this.state.contacts.splice(index, 1);
-    this.setState({ contacts: [...this.state.contacts] });
   };
 
-  nameChange = (e) => {
-    return this.setState({ name: e.target.value });
+  const filteredContact = getFilteredElems();
+
+  const handleFilterChange = (e) => {
+    setFilter(e.target.value);
   };
 
-  phoneChange = (e) => {
-    return this.setState({ phoneNumber: e.target.value });
+  const delContact = (dataId) => {
+    setContacts((prevState) => prevState.filter(({ id }) => id !== dataId));
   };
 
-  filterFunc = (e) => {
-    return this.setState({ filter: e.target.value });
-  };
+  return (
+    <div className="container">
+      <ContactForm
+        addContact={addContact}
+        nameChange={handleChange}
+        phoneChange={handleChange}
+      />
 
-  getFilteredElems = () => {
-    const normalizedElem = this.state.filter.toLowerCase();
-    const stateNormElems = this.state.contacts.filter((elem) => {
-      return elem.name.toLowerCase().includes(normalizedElem);
-    });
-    return stateNormElems;
-  };
-
-  render() {
-    const filteredContact = this.getFilteredElems();
-
-    return (
-      <div className="container">
-        <ContactForm
-          addContact={this.addContact}
-          nameChange={this.nameChange}
-          phoneChange={this.phoneChange}
-        />
-        <Filter filter={this.filterFunc} />
-        <ContactList contacts={filteredContact} delContact={this.delContact} />
-      </div>
-    );
-  }
+      {contacts.length > 0 && (
+        <>
+          <Filter filter={handleFilterChange} value={filter} />
+          <ContactList contacts={filteredContact} delContact={delContact} />
+        </>
+      )}
+    </div>
+  );
 }
-
-export default App;

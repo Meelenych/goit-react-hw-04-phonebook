@@ -1,7 +1,7 @@
 import React from "react";
 
 const ContactList = ({ contacts, delContact }) => {
-  console.log(contacts);
+  //   console.log(contacts);
   return (
     <>
       <h1>Contacts</h1>
